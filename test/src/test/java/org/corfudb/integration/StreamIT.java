@@ -1,8 +1,16 @@
 package org.corfudb.integration;
 
+import org.corfudb.runtime.BootstrapUtil;
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.runtime.exceptions.WriteSizeException;
+import org.corfudb.runtime.view.Layout;
 import org.junit.Test;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -11,40 +19,27 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * A set integration tests that exercise the stream API.
  */
 
-public class StreamIT extends AbstractIT {
+public class StreamIT {
 
     @Test
     public void largeStreamWrite() throws Exception {
-        final String host = "localhost";
-        final String streamName = "s1";
-        final int port = 9000;
 
-        // Start node one and populate it with data
-        Process server_1 = new CorfuServerRunner()
-                .setHost(host)
-                .setPort(port)
-                .setSingle(true)
-                .runServer();
+        Layout layout = new Layout(
+                new ArrayList<>(
+                        Arrays.asList("localhost:9000", "localhost:9001")),
+                new ArrayList<>(
+                        Arrays.asList("localhost:9000", "localhost:9001")),
+                Collections.singletonList(new Layout.LayoutSegment(
+                        Layout.ReplicationMode.CHAIN_REPLICATION,
+                        0L,
+                        -1L,
+                        Collections.singletonList(new Layout.LayoutStripe(
+                                Arrays.asList("localhost:9000", "localhost:9001")
+                        )))),
+                0L,
+                UUID.randomUUID());
 
-        final int maxWriteSize = 100;
+        BootstrapUtil.bootstrap(layout, 10, Duration.ofSeconds(1));
 
-        // Configure a client with a max write limit
-        CorfuRuntime.CorfuRuntimeParameters params = CorfuRuntime.CorfuRuntimeParameters
-                .builder()
-                .maxWriteSize(maxWriteSize)
-                .build();
-
-        CorfuRuntime rt = CorfuRuntime.fromParameters(params);
-        rt.parseConfigurationString(host + ":" + port);
-        rt.connect();
-
-        final int bufSize = maxWriteSize * 2;
-
-        // Attempt to write a payload that is greater than the configured limit.
-        assertThatThrownBy(() -> rt.getStreamsView()
-                .get(CorfuRuntime.getStreamID(streamName))
-                .append(new byte[bufSize]))
-                .isInstanceOf(WriteSizeException.class);
-        shutdownCorfuServer(server_1);
     }
 }

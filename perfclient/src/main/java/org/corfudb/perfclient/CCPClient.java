@@ -2,9 +2,10 @@ package org.corfudb.perfclient;
 
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.runtime.collections.SMRMap;
-import org.corfudb.runtime.view.stream.IStreamView;
 import org.corfudb.util.serializer.Serializers;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 public class CCPClient {
@@ -16,13 +17,11 @@ public class CCPClient {
         int numThreads = Integer.valueOf(args[2]);
         int opsPerThread = Integer.valueOf(args[3]);
         int sizeOfPayload = Integer.valueOf(args[4]);
+        int batchSize = Integer.valueOf(args[5]);
 
         CorfuRuntime[] runtimes = new CorfuRuntime[numClients];
         SMRMap<UUID, byte[]>[] maps = new SMRMap[numClients];
-        IStreamView[] streams = new IStreamView[numClients];
         String mapName = "map1";
-        String streamName = "stream1";
-
         for (int x = 0; x < numClients; x++) {
             runtimes[x] = new CorfuRuntime(connectionString).connect();
             maps[x] = runtimes[x].getObjectsView()
@@ -31,38 +30,28 @@ public class CCPClient {
                     .setSerializer(Serializers.JAVA)
                     .setType(SMRMap.class)
                     .open();
-            streams[x] = runtimes[x].getStreamsView().get(CorfuRuntime.getStreamID(streamName));
         }
 
-        boolean streamWrites = false;
-
         Thread[] writerThreads = new Thread[numThreads];
-        if (!streamWrites) {
-            for (int x = 0; x < numThreads; x++) {
-                Runnable r = () -> {
-                    byte[] payload = new byte[sizeOfPayload];
 
-                    for (int y = 0; y < opsPerThread; y++) {
-                        maps[y % numClients].blindPut(UUID.randomUUID(), payload);
+        for (int x = 0; x < numThreads; x++) {
+            final int clientId = x;
+
+            Runnable r = () -> {
+
+                byte[] payload = new byte[sizeOfPayload];
+
+                for (int a = 0; a < opsPerThread; ) {
+                    Map<UUID, byte[]> batch = new HashMap<>(batchSize);
+                    for (int b = 0; b < batchSize; b++) {
+                        batch.put(UUID.randomUUID(), payload);
+                        a++;
                     }
-                };
+                    maps[clientId].putAll(batch);
+                }
+            };
 
-                writerThreads[x] = new Thread(r);
-            }
-
-        } else {
-
-            for (int x = 0; x < numThreads; x++) {
-                Runnable r = () -> {
-                    byte[] payload = new byte[sizeOfPayload];
-
-                    for (int y = 0; y < opsPerThread; y++) {
-                        streams[y % numClients].append(payload);
-                    }
-                };
-
-                writerThreads[x] = new Thread(r);
-            }
+            writerThreads[x] = new Thread(r);
         }
 
 
@@ -78,6 +67,7 @@ public class CCPClient {
 
         long s2 = System.currentTimeMillis();
 
+        System.out.println("sizeOfMap " + maps[0].size());
         System.out.println("totalTime(ms) " + (s2 - s1));
         System.out.println("totalOps " + (opsPerThread * numThreads));
         System.out.println("throughput " + (((opsPerThread * numThreads) * 1.0) / (s2 - s1)));
