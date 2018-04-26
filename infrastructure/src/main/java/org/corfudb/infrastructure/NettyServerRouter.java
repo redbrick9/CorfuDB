@@ -1,5 +1,6 @@
 package org.corfudb.infrastructure;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -8,8 +9,10 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinWorkerThread;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
@@ -21,6 +24,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.corfudb.protocols.wireprotocol.CorfuMsg;
 import org.corfudb.protocols.wireprotocol.CorfuMsgType;
 import org.corfudb.protocols.wireprotocol.CorfuPayloadMsg;
+
+import static org.corfudb.protocols.wireprotocol.CorfuMsgType.TOKEN_REQ;
 
 
 /**
@@ -76,10 +81,16 @@ public class NettyServerRouter extends ChannelInboundHandlerAdapter
                 e);
     }
 
-    protected final ExecutorService handlerWorkers =
-            new ForkJoinPool(Runtime.getRuntime().availableProcessors() * 2,
-                    new ServerThreadFactory(),
-                    NettyServerRouter::handleUncaughtException, true);
+    ThreadFactory seqFac =
+                        new ThreadFactoryBuilder().setNameFormat("sequencer-%d").build();
+    ThreadFactory serverFac =
+                        new ThreadFactoryBuilder().setNameFormat("server-worker-%d").build();
+    protected final ExecutorService handlerWorkers = Executors.newFixedThreadPool(8, serverFac);
+    protected final ExecutorService SeqWorker = Executors.newFixedThreadPool(1, seqFac);
+           // new ForkJoinPool(Runtime.getRuntime().availableProcessors() * 2,
+                     //       new ServerThreadFactory(),
+                       //     NettyServerRouter::handleUncaughtException, true);
+
 
     /**
      * This map stores the mapping from message type to netty server handler.
@@ -179,17 +190,38 @@ public class NettyServerRouter extends ChannelInboundHandlerAdapter
                         log.trace("Message routed to {}: {}", handler.getClass().getSimpleName(),
                                 msg);
                     }
-                    handlerWorkers.submit(() -> {
-                        try {
-                            handler.handleMessage(m, ctx, this);
-                        } catch (Throwable t) {
-                            log.error("channelRead: Handling {} failed due to {}:{}",
-                                    m != null ? m.getMsgType() : "UNKNOWN",
-                                    t.getClass().getSimpleName(),
-                                    t.getMessage(),
-                                    t);
-                        }
-                    });
+
+
+                    if (m.getMsgType() == TOKEN_REQ) {
+
+                        SeqWorker.submit(() -> {
+                            try {
+                                handler.handleMessage(m, ctx, this);
+                            } catch (Throwable t) {
+                                log.error("channelRead: Handling {} failed due to {}:{}",
+                                        m != null ? m.getMsgType() : "UNKNOWN",
+                                        t.getClass().getSimpleName(),
+                                        t.getMessage(),
+                                        t);
+                            }
+                            ;
+                        });
+
+                    } else {
+
+                        handlerWorkers.submit(() -> {
+                            try {
+                                handler.handleMessage(m, ctx, this);
+                            } catch (Throwable t) {
+                                log.error("channelRead: Handling {} failed due to {}:{}",
+                                        m != null ? m.getMsgType() : "UNKNOWN",
+                                        t.getClass().getSimpleName(),
+                                        t.getMessage(),
+                                        t);
+                            }
+                        });
+                    }
+
                 }
             }
         } catch (Exception e) {

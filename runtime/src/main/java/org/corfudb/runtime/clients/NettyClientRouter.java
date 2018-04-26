@@ -38,6 +38,7 @@ import org.corfudb.protocols.wireprotocol.ClientHandshakeHandler;
 import org.corfudb.protocols.wireprotocol.ClientHandshakeHandler.ClientHandshakeEvent;
 import org.corfudb.protocols.wireprotocol.CorfuMsg;
 import org.corfudb.protocols.wireprotocol.CorfuMsgType;
+import org.corfudb.protocols.wireprotocol.FlushConsolidationHandler;
 import org.corfudb.protocols.wireprotocol.NettyCorfuMessageDecoder;
 import org.corfudb.protocols.wireprotocol.NettyCorfuMessageEncoder;
 import org.corfudb.runtime.CorfuRuntime;
@@ -295,6 +296,7 @@ public class NettyClientRouter extends SimpleChannelInboundHandler<CorfuMsg>
                 ch.pipeline().addLast(new ClientHandshakeHandler(parameters.getClientId(),
                     node.getNodeId(), parameters.getHandshakeTimeout()));
                 ch.pipeline().addLast(NettyClientRouter.this);
+                ch.pipeline().addFirst(new FlushConsolidationHandler());
             }
         };
     }
