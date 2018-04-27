@@ -31,6 +31,7 @@ public class SequencerView extends AbstractView {
      * @return The first token retrieved.
      */
     public TokenResponse nextToken(Set<UUID> streamIDs, int numTokens) {
+
         return layoutHelper(e -> CFUtils.getUninterruptibly(e.getPrimarySequencerClient()
                 .nextToken(streamIDs, numTokens)));
     }

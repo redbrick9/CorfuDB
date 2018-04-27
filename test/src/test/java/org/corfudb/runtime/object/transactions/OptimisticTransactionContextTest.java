@@ -1,16 +1,21 @@
 package org.corfudb.runtime.object.transactions;
 
+import org.corfudb.protocols.wireprotocol.TokenResponse;
 import org.corfudb.runtime.CorfuRuntime;
+import org.corfudb.runtime.clients.TestRule;
 import org.corfudb.runtime.collections.SMRMap;
 import org.corfudb.runtime.exceptions.TransactionAbortedException;
 import org.corfudb.runtime.object.ConflictParameterClass;
+import org.corfudb.runtime.view.Address;
 import org.corfudb.util.serializer.ICorfuHashable;
 import org.corfudb.util.serializer.ISerializer;
 import org.corfudb.util.serializer.Serializers;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -27,6 +32,37 @@ public class OptimisticTransactionContextTest extends AbstractTransactionContext
     @Override
     public void TXBegin() { OptimisticTXBegin(); }
 
+
+    @Test
+    public void testMultiStreamQuery() throws Exception {
+
+        CorfuRuntime rt = getDefaultRuntime();
+        rt.getParameters().setEnableMultiStreamQuery(true);
+
+        UUID streamId = UUID.randomUUID();
+        UUID streamId2 = UUID.randomUUID();
+
+        // increment the tail for streamId2
+        rt.getSequencerView().nextToken(Collections.singleton(streamId2), 2);
+
+        TXBegin();
+
+        TokenResponse resp = rt.getSequencerView().nextToken(Collections.singleton(streamId), 0);
+        // compute the snapshot ts
+        TransactionalContext.getCurrentContext().getSnapshotTimestamp();
+
+        // Drop all messages to the sequencer, this is used to verify that the stream tail queries
+        // don't result in rpcs.
+        addClientRule(rt, SERVERS.ENDPOINT_0, new TestRule().drop().always());
+        OptimisticTransactionalContext otxn = (OptimisticTransactionalContext) TransactionalContext.getCurrentContext();
+        Map<UUID, Long> seqHints = otxn.getSequencerHints();
+
+        assertThat(seqHints).hasSize(1);
+        assertThat(seqHints.get(streamId2)).isEqualTo(1);
+
+        // Verify that stream ids that don't exist return the correct value
+        assertThat(resp.getTokenValue()).isEqualTo(Address.NON_EXIST);
+    }
 
     /** Checks that the fine-grained conflict set is correctly produced
      * by the annotation framework.
