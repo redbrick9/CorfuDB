@@ -105,6 +105,18 @@ public abstract class AbstractTransactionalContext implements
     @Getter(lazy = true)
     private final long snapshotTimestamp = obtainSnapshotTimestamp();
 
+
+    /**
+     * these hints are initialized when the transaction retrieves the snapshotTimestamp.
+     * These hints are used service to locally service stream tail queries instead of
+     * making a request to the sequencer.
+     */
+    @Getter
+    public Map<UUID, Long> sequencerHints = null;
+
+    @Getter
+    public long hintsEpoch;
+
     /**
      * The address that the transaction was committed at.
      */

@@ -45,6 +45,7 @@ public class SequencerClient extends AbstractClient {
                 new TokenRequest(numTokens, streamIDs)));
     }
 
+
     /**
      * Fetches the next available token from the sequencer.
      *
