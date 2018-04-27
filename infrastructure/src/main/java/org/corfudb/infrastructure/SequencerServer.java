@@ -101,7 +101,7 @@ public class SequencerServer extends AbstractServer {
      * per streams map to last issued global-log position. used for
      * backpointers.
      */
-    private final ConcurrentHashMap<UUID, Long> streamTailToGlobalTailMap = new
+    private final ConcurrentHashMap<UUID, Long> streamTails = new
             ConcurrentHashMap<>();
 
     /**
@@ -250,7 +250,7 @@ public class SequencerServer extends AbstractServer {
                 }
             } else { // otherwise, check for conflict based on streams updates
                 UUID streamId = entry.getKey();
-                streamTailToGlobalTailMap.compute(streamId, (k, v) -> {
+                streamTails.compute(streamId, (k, v) -> {
                     if (v == null) {
                         return null;
                     }
@@ -292,8 +292,8 @@ public class SequencerServer extends AbstractServer {
         if (req.getStreams().size() == 1) {
             UUID streamId = req.getStreams().iterator().next();
 
-            if (streamTailToGlobalTailMap.get(streamId) != null) {
-                maxStreamGlobalTail = streamTailToGlobalTailMap.get(streamId);
+            if (streamTails.get(streamId) != null) {
+                maxStreamGlobalTail = streamTails.get(streamId);
             }
         }
 
@@ -303,7 +303,7 @@ public class SequencerServer extends AbstractServer {
                 maxStreamGlobalTail;
         Token token = new Token(responseGlobalTail, bootstrapEpoch);
         r.sendResponse(ctx, msg, CorfuMsgType.TOKEN_RES.payloadMsg(new TokenResponse(
-                TokenType.NORMAL, TokenResponse.NO_CONFLICT_KEY, token, Collections.emptyMap())));
+                TokenType.NORMAL, TokenResponse.NO_CONFLICT_KEY, token, Collections.emptyMap(), Collections.emptyMap())));
     }
 
     @ServerHandler(type = CorfuMsgType.SEQUENCER_TRIM_REQ)
@@ -333,7 +333,7 @@ public class SequencerServer extends AbstractServer {
     public synchronized void resetServer(CorfuPayloadMsg<SequencerTailsRecoveryMsg> msg,
                                          ChannelHandlerContext ctx, IServerRouter r) {
         long initialToken = msg.getPayload().getGlobalTail();
-        final Map<UUID, Long> streamTails = msg.getPayload().getStreamTails();
+        final Map<UUID, Long> tails = msg.getPayload().getStreamTails();
         final long readyEpoch = msg.getPayload().getReadyStateEpoch();
 
         // Boolean flag to denote whether this bootstrap message is just updating an existing
@@ -373,8 +373,8 @@ public class SequencerServer extends AbstractServer {
             conflictToGlobalTailCache.invalidateAll();
 
             // Clear the existing map as it could have been populated by an earlier reset.
-            streamTailToGlobalTailMap.clear();
-            streamTailToGlobalTailMap.putAll(streamTails);
+            streamTails.clear();
+            streamTails.putAll(tails);
         }
 
         // Mark the sequencer as ready after the tails have been populated.
@@ -383,7 +383,7 @@ public class SequencerServer extends AbstractServer {
 
         log.info("Sequencer reset with token = {}, streamTailToGlobalTailMap = {},"
                         + " bootstrapEpoch = {}",
-                initialToken, streamTailToGlobalTailMap, bootstrapEpoch);
+                initialToken, streamTails, bootstrapEpoch);
         r.sendResponse(ctx, msg, CorfuMsgType.ACK.msg());
     }
 
@@ -421,11 +421,34 @@ public class SequencerServer extends AbstractServer {
                 handleTxToken(msg, ctx, r);
                 return;
 
+            case TokenRequest.TK_QUERY_ALL:
+                handleMultiStreamQuery(msg, ctx, r);
+                return;
+
             default:
                 handleAllocation(msg, ctx, r);
                 return;
         }
     }
+
+
+    /**
+     *
+     * this method is able to query multiple stream tails within the same request.
+     * For now it returns the whole stream tails map, but later we will change it
+     * to service a subset of that map.
+     *
+     * @param msg corfu message containing token query
+     * @param ctx netty ChannelHandlerContext
+     * @param r   server router
+     */
+    public void handleMultiStreamQuery(CorfuPayloadMsg<TokenRequest> msg,
+                                      ChannelHandlerContext ctx, IServerRouter r) {
+        Token token = new Token(getGlobalLogTail().get() - 1, bootstrapEpoch);
+        r.sendResponse(ctx, msg, CorfuMsgType.TOKEN_RES.payloadMsg(new TokenResponse(
+                TokenType.NORMAL, TokenResponse.NO_CONFLICT_KEY, token, Collections.emptyMap(), streamTails)));
+    }
+
 
     /**
      * this method serves log-tokens for a raw log implementation.
@@ -511,7 +534,7 @@ public class SequencerServer extends AbstractServer {
         for (UUID id : req.getStreams()) {
 
             // step 1. and 2. (comment above)
-            streamTailToGlobalTailMap.compute(id, (k, v) -> {
+            streamTails.compute(id, (k, v) -> {
                 if (v == null) {
                     backPointerMap.put(k, Address.NON_EXIST);
                     return newTail - 1;

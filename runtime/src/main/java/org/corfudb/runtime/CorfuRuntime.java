@@ -87,6 +87,14 @@ public class CorfuRuntime {
         @Default int maxWriteSize = 0;
 
         /**
+         * Retrieve all stream tails from the sequencer when a transaction
+         * starts. This can improve performance for transactions that access
+         * many streams by reducing multiple sequencer tail queries to just
+         * a single sequencer call that happens when the transaction starts.
+         */
+        @Default boolean enableMultiStreamQuery = false;
+
+        /**
          * Use fast loader to restore objects on connection.
          *
          * <p>If using this utility, you need to be sure that no one
