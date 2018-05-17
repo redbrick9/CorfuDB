@@ -167,10 +167,10 @@ public class OptimisticTransactionalContext extends AbstractTransactionalContext
         }
         // Otherwise, we need to sync the object
         // Get snapshot timestamp in advance so it is not performed under the VLO lock
-  //      long ts = (getSequencerHints() != null) ? getSequencerHints().getOrDefault(proxy.getStreamID(),
-//                Address.NON_EXIST) : getSnapshotTimestamp();
+        long ts = (getSequencerHints() != null) ? getSequencerHints().getOrDefault(proxy.getStreamID(),
+                Address.NON_EXIST) : getSnapshotTimestamp();
 
-        long ts = getSnapshotTimestamp();
+        //long ts = getSnapshotTimestamp();
         return proxy.getUnderlyingObject().update(o -> {
             log.trace("Upcall[{}] {} Sync'd", this,  timestamp);
             syncWithRetryUnsafe(o, ts, proxy, this::setAsOptimisticStream);
