@@ -72,7 +72,7 @@ public class StreamIT  {
 
 
         int numThread = 60;
-        final int numOps = 400;
+        final int numOps = 40000;
         final int numStreams = 400;
 
         for (int x = 0; x < numStreams; x++) {
@@ -88,7 +88,7 @@ public class StreamIT  {
             Runnable r = () -> {
                 for (int y = 0; y < numOps; y++) {
                     TokenResponse resLocal = rt.getSequencerView().nextToken(Collections.EMPTY_SET,
-                            Integer.MAX_VALUE);
+                            0);
                     res.getStreamsMap();
                 }
 

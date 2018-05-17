@@ -8,6 +8,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -76,10 +77,10 @@ public class NettyServerRouter extends ChannelInboundHandlerAdapter
                 e);
     }
 
-    protected final ExecutorService handlerWorkers =
-            new ForkJoinPool(Runtime.getRuntime().availableProcessors() * 2,
-                    new ServerThreadFactory(),
-                    NettyServerRouter::handleUncaughtException, true);
+    protected final ExecutorService handlerWorkers = Executors.newSingleThreadExecutor();
+        //    new ForkJoinPool(Runtime.getRuntime().availableProcessors() * 2,
+          //          new ServerThreadFactory(),
+            //        NettyServerRouter::handleUncaughtException, true);
 
     /**
      * This map stores the mapping from message type to netty server handler.
