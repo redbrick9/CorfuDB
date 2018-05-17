@@ -66,14 +66,14 @@ public class StreamIT  {
     @Test
     public void largeStreamWrite2() throws Exception {
 
-        CorfuRuntime rt = new CorfuRuntime("localhost:9000").connect();
+        CorfuRuntime rt = new CorfuRuntime("192.168.1.73:9000").connect();
         rt.getParameters().setEnableMultiStreamQuery(false);
 
 
 
-        int numThread = 60;
+        int numThread = 30;
         final int numOps = 40000;
-        final int numStreams = 400;
+        final int numStreams = 65;
 
         for (int x = 0; x < numStreams; x++) {
             rt.getSequencerView().nextToken(Collections.singleton(CorfuRuntime.getStreamID(String.valueOf(x))), 1);

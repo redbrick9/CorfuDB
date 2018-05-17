@@ -77,10 +77,6 @@ public class NettyServerRouter extends ChannelInboundHandlerAdapter
                 e);
     }
 
-    protected final ExecutorService handlerWorkers = Executors.newSingleThreadExecutor();
-        //    new ForkJoinPool(Runtime.getRuntime().availableProcessors() * 2,
-          //          new ServerThreadFactory(),
-            //        NettyServerRouter::handleUncaughtException, true);
 
     /**
      * This map stores the mapping from message type to netty server handler.
@@ -174,13 +170,12 @@ public class NettyServerRouter extends ChannelInboundHandlerAdapter
                 // The message was unregistered, we are dropping it.
                 log.warn("Received unregistered message {}, dropping", m);
             } else {
-                if (validateEpoch(m, ctx)) {
+
                     // Route the message to the handler.
                     if (log.isTraceEnabled()) {
                         log.trace("Message routed to {}: {}", handler.getClass().getSimpleName(),
                                 msg);
                     }
-                    handlerWorkers.submit(() -> {
                         try {
                             handler.handleMessage(m, ctx, this);
                         } catch (Throwable t) {
@@ -190,8 +185,8 @@ public class NettyServerRouter extends ChannelInboundHandlerAdapter
                                     t.getMessage(),
                                     t);
                         }
-                    });
-                }
+
+
             }
         } catch (Exception e) {
             log.error("Exception during read!", e);

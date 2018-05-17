@@ -403,7 +403,7 @@ public class SequencerServer extends AbstractServer {
      * Service an incoming token request.
      */
     @ServerHandler(type = CorfuMsgType.TOKEN_REQ)
-    public synchronized void tokenRequest(CorfuPayloadMsg<TokenRequest> msg,
+    public void tokenRequest(CorfuPayloadMsg<TokenRequest> msg,
                                           ChannelHandlerContext ctx, IServerRouter r) {
         TokenRequest req = msg.getPayload();
 
