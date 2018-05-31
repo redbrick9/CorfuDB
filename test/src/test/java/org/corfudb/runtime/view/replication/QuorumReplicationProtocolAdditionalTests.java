@@ -156,12 +156,12 @@ public class QuorumReplicationProtocolAdditionalTests extends AbstractViewTest {
 
         //generate a stream hole
         TokenResponse tr =
-                r.getSequencerView().nextToken(Collections.singleton(streamA), 1);
+                r.getSequencerView().nextToken(Collections.singletonList(streamA), 1);
 
         IStreamView sv = r.getStreamsView().get(streamA);
         sv.append(testPayload);
 
-        tr = r.getSequencerView().nextToken(Collections.singleton(streamA), 1);
+        tr = r.getSequencerView().nextToken(Collections.singletonList(streamA), 1);
 
         //make sure we can still read the stream.
         assertThat(sv.next().getPayload(getRuntime()))

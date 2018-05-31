@@ -80,7 +80,7 @@ public class SMRMapEntrySetTest extends AbstractTransactionsTest {
         CountDownLatch l3 = new CountDownLatch(1);
 
         // Block until sequencer operational.
-        r.getSequencerView().nextToken(Collections.EMPTY_SET, 0);
+        r.getSequencerView().nextToken(Collections.emptyList(), 0);
 
         // first thread: create and manipulate map
         scheduleConcurrently(t -> {

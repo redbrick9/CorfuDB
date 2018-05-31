@@ -524,7 +524,7 @@ public class ManagementViewTest extends AbstractViewTest {
 
         // Block until new sequencer reaches READY state.
         getCorfuRuntime().getSequencerView().nextToken(
-                Collections.singleton(CorfuRuntime.getStreamID("streamA")),
+                Collections.singletonList(CorfuRuntime.getStreamID("streamA")),
                 0);
         // verify that a failover sequencer was started with the correct starting-tail
         //
@@ -794,7 +794,7 @@ public class ManagementViewTest extends AbstractViewTest {
      */
     private void getTokenWriteAndAssertBackPointer(UUID streamID, Long expectedBackpointerValue) {
         TokenResponse tokenResponse =
-                corfuRuntime.getSequencerView().nextToken(Collections.singleton(streamID), 1);
+                corfuRuntime.getSequencerView().nextToken(Collections.singletonList(streamID), 1);
         if (expectedBackpointerValue == null) {
             assertThat(tokenResponse.getBackpointerMap()).isEmpty();
         } else {
@@ -833,7 +833,7 @@ public class ManagementViewTest extends AbstractViewTest {
                             // server is sealed and we get a WrongEpochException.
                             corfuRuntime.getLayoutView().getRuntimeLayout(layout)
                                     .getSequencerClient(SERVERS.ENDPOINT_1)
-                                    .nextToken(Collections.singleton(CorfuRuntime
+                                    .nextToken(Collections.singletonList(CorfuRuntime
                                             .getStreamID("testStream")), 1).get();
                             fail();
                         } catch (InterruptedException | ExecutionException e) {
@@ -850,7 +850,7 @@ public class ManagementViewTest extends AbstractViewTest {
                 .isTrue();
 
         // We should be able to request a token now.
-        corfuRuntime.getSequencerView().nextToken(Collections.singleton(CorfuRuntime
+        corfuRuntime.getSequencerView().nextToken(Collections.singletonList(CorfuRuntime
                 .getStreamID("testStream")), 1);
     }
 
@@ -1155,7 +1155,7 @@ public class ManagementViewTest extends AbstractViewTest {
         assertThat(rt.getLayoutView().getLayout()).isEqualTo(expectedLayout);
 
         TokenResponse tokenResponse = rt.getSequencerView()
-                .nextToken(Collections.singleton(CorfuRuntime.getStreamID("test")), 0);
+                .nextToken(Collections.singletonList(CorfuRuntime.getStreamID("test")), 0);
         long lastAddress = tokenResponse.getTokenValue();
 
         Map<Long, LogData> map_0 = getAllNonEmptyData(rt, SERVERS.ENDPOINT_0, lastAddress);
@@ -1290,7 +1290,7 @@ public class ManagementViewTest extends AbstractViewTest {
         assertThat(rt.getLayoutView().getLayout()).isEqualTo(expectedLayout);
 
         TokenResponse tokenResponse = rt.getSequencerView()
-                .nextToken(Collections.singleton(CorfuRuntime.getStreamID("test")), 0);
+                .nextToken(Collections.singletonList(CorfuRuntime.getStreamID("test")), 0);
         long lastAddress = tokenResponse.getTokenValue();
 
         Map<Long, LogData> map_0 = getAllNonEmptyData(rt, SERVERS.ENDPOINT_0, lastAddress);
@@ -1361,8 +1361,8 @@ public class ManagementViewTest extends AbstractViewTest {
 
         // Using the stale client with view of epoch 1, request 10 tokens.
         final int tokenCount = 5;
-        runtime_2.getSequencerView().nextToken(Collections.singleton(streamA), tokenCount);
-        runtime_2.getSequencerView().nextToken(Collections.singleton(streamB), tokenCount);
+        runtime_2.getSequencerView().nextToken(Collections.singletonList(streamA), tokenCount);
+        runtime_2.getSequencerView().nextToken(Collections.singletonList(streamB), tokenCount);
         // Using the new client request 2 tokens and write to the log.
         streamViewA.append(payload);
         streamViewA.append(payload);
@@ -1393,7 +1393,7 @@ public class ManagementViewTest extends AbstractViewTest {
         // Assert that the streamTailMap has been reset and returns the correct backpointer.
         final long expectedBackpointerStreamA = 11;
         TokenResponse tokenResponse = runtime_1.getSequencerView()
-                .nextToken(Collections.singleton(streamA), 1);
+                .nextToken(Collections.singletonList(streamA), 1);
         assertThat(tokenResponse.getBackpointerMap().get(streamA))
                 .isEqualTo(expectedBackpointerStreamA);
     }
@@ -1422,7 +1422,7 @@ public class ManagementViewTest extends AbstractViewTest {
                 .requestMetrics().get()).hasCauseInstanceOf(ServerNotReadyException.class);
 
         // Wait for the management service to detect and bootstrap the sequencer.
-        corfuRuntime.getSequencerView().nextToken(Collections.emptySet(), 0);
+        corfuRuntime.getSequencerView().nextToken(Collections.emptyList(), 0);
 
         // Assert that the primary sequencer is bootstrapped.
         assertThat(corfuRuntime.getLayoutView().getRuntimeLayout().getPrimarySequencerClient()

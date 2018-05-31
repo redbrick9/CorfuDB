@@ -184,7 +184,7 @@ public class CmdletIT extends AbstractIT {
         runCmdletGetOutput(commandNextToken);
 
         Token token = runtime.getSequencerView()
-                .nextToken(Collections.singleton(CorfuRuntime.getStreamID(streamA)), 0)
+                .nextToken(Collections.singletonList(CorfuRuntime.getStreamID(streamA)), 0)
                 .getToken();
 
         String commandLatest = CORFU_PROJECT_DIR + "bin/corfu_sequencer -i " + streamA + " -c " + ENDPOINT + " latest";

@@ -2,6 +2,7 @@ package org.corfudb.protocols.wireprotocol;
 
 import io.netty.buffer.ByteBuf;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -39,7 +40,7 @@ public class TokenRequest implements ICorfuPayload<TokenRequest> {
     final Long numTokens;
 
     /** The streams which are written to by this token request. */
-    final Set<UUID> streams;
+    final List<UUID> streams;
 
     /* used for transaction resolution. */
     final TxResolutionInfo txnResolution;
@@ -51,7 +52,7 @@ public class TokenRequest implements ICorfuPayload<TokenRequest> {
      * @param streams streams UUIDs required in the token request
      * @param conflictInfo transaction resolution information
      */
-    public TokenRequest(Long numTokens, Set<UUID> streams,
+    public TokenRequest(Long numTokens, List<UUID> streams,
                         TxResolutionInfo conflictInfo) {
         reqType = TK_TX;
         this.numTokens = numTokens;
@@ -65,7 +66,7 @@ public class TokenRequest implements ICorfuPayload<TokenRequest> {
      * @param numTokens number of tokens to request
      * @param streams streams UUIDs required in the token request
      */
-    public TokenRequest(Long numTokens, Set<UUID> streams) {
+    public TokenRequest(Long numTokens, List<UUID> streams) {
         if (numTokens == 0) {
             this.reqType = TK_QUERY;
         } else if (streams == null || streams.size() == 0) {
@@ -90,7 +91,7 @@ public class TokenRequest implements ICorfuPayload<TokenRequest> {
 
             case TK_QUERY:
                 numTokens = 0L;
-                streams = ICorfuPayload.setFromBuffer(buf, UUID.class);
+                streams = ICorfuPayload.listFromBuffer(buf, UUID.class);
                 txnResolution = null;
                 break;
 
@@ -102,13 +103,13 @@ public class TokenRequest implements ICorfuPayload<TokenRequest> {
 
             case TK_MULTI_STREAM:
                 numTokens = ICorfuPayload.fromBuffer(buf, Long.class);
-                streams = ICorfuPayload.setFromBuffer(buf, UUID.class);
+                streams = ICorfuPayload.listFromBuffer(buf, UUID.class);
                 txnResolution = null;
                 break;
 
             case TK_TX:
                 numTokens = ICorfuPayload.fromBuffer(buf, Long.class);
-                streams = ICorfuPayload.setFromBuffer(buf, UUID.class);
+                streams = ICorfuPayload.listFromBuffer(buf, UUID.class);
                 txnResolution = new TxResolutionInfo(buf);
                 break;
 

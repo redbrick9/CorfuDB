@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Constructor;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -189,7 +190,7 @@ public class CorfuCompileProxy<T> implements ICorfuSMRProxyInternal<T> {
         for (int x = 0; x < rt.getParameters().getTrimRetry(); x++) {
             // Linearize this read against a timestamp
             final long timestamp = rt.getSequencerView()
-                            .nextToken(Collections.singleton(streamID), 0).getToken().getTokenValue();
+                            .nextToken(Collections.singletonList(streamID), 0).getToken().getTokenValue();
             log.debug("Access[{}] conflictObj={} version={}", this, conflictObject, timestamp);
 
             try {
@@ -266,11 +267,10 @@ public class CorfuCompileProxy<T> implements ICorfuSMRProxyInternal<T> {
         // Linearize this read against a timestamp
         final long timestamp =
                 rt.getSequencerView()
-                        .nextToken(Collections.singleton(streamID), 0).getToken()
+                        .nextToken(Collections.singletonList(streamID), 0).getToken()
                         .getTokenValue();
 
         log.debug("Sync[{}] {}", this, timestamp);
-
         // Acquire locks and perform read.
         underlyingObject.update(o -> {
             o.syncObjectUnsafe(timestamp);

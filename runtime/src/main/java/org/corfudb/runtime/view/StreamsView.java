@@ -1,7 +1,8 @@
 package org.corfudb.runtime.view;
 
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.Set;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -74,7 +75,7 @@ public class StreamsView extends AbstractView {
         boolean written = false;
         while (!written) {
             TokenResponse tokenResponse =
-                    runtime.getSequencerView().nextToken(Collections.singleton(destination), 1);
+                    runtime.getSequencerView().nextToken(Collections.singletonList(destination), 1);
             if (tokenResponse.getBackpointerMap().get(destination) != null
                     && Address.isAddress(tokenResponse.getBackpointerMap().get(destination))) {
                 // Reading from this address will cause a hole fill
@@ -108,7 +109,7 @@ public class StreamsView extends AbstractView {
      * @throws TransactionAbortedException If the transaction was aborted by
      *                                     the sequencer.
      */
-    public long append(@Nonnull Set<UUID> streamIDs, @Nonnull Object object,
+    public long append(@Nonnull List<UUID> streamIDs, @Nonnull Object object,
                        @Nullable TxResolutionInfo conflictInfo) throws TransactionAbortedException {
 
         // Go to the sequencer, grab an initial token.
@@ -178,7 +179,7 @@ public class StreamsView extends AbstractView {
                 // eventually be deprecated since these are no longer used)
                 tokenResponse = new TokenResponse(
                         temp.getRespType(), tokenResponse.getConflictKey(),
-                        temp.getToken(), temp.getBackpointerMap());
+                        temp.getToken(), temp.getBackpointerMap(), Collections.emptyList());
 
             } catch (StaleTokenException se) {
                 // the epoch changed from when we grabbed the token from sequencer

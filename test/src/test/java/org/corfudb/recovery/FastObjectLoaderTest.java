@@ -123,7 +123,7 @@ public class FastObjectLoaderTest extends AbstractViewTest {
         maps.keySet().forEach((streamName) -> {
             UUID id = CorfuRuntime.getStreamID(streamName);
             long tail = getDefaultRuntime().getSequencerView().
-                    nextToken(Collections.singleton(id),
+                    nextToken(Collections.singletonList(id),
                             0).getToken().getTokenValue();
             if (streamTails.containsKey(id)) {
                 assertThat(streamTails.get(id)).isEqualTo(tail);
@@ -188,14 +188,14 @@ public class FastObjectLoaderTest extends AbstractViewTest {
 
         seq.nextToken(null, 1);
         luc.fillHole(getDefaultRuntime().getSequencerView()
-                .nextToken(Collections.emptySet(), 0)
+                .nextToken(Collections.emptyList(), 0)
                 .getTokenValue());
 
         populateMaps(1, getDefaultRuntime(), CorfuTable.class, false, 1);
 
         seq.nextToken(null, 1);
         luc.fillHole(getDefaultRuntime().getSequencerView()
-                .nextToken(Collections.emptySet(), 0)
+                .nextToken(Collections.emptyList(), 0)
                 .getTokenValue());
 
         CorfuRuntime rt2 = Helpers.createNewRuntimeWithFastLoader(getDefaultConfigurationString());
@@ -405,14 +405,14 @@ public class FastObjectLoaderTest extends AbstractViewTest {
         SequencerClient seq = getDefaultRuntime().getLayoutView().getRuntimeLayout()
                 .getSequencerClient(getDefaultConfigurationString());
 
-        long address = seq.nextToken(Collections.emptySet(),1).get().getTokenValue();
+        long address = seq.nextToken(Collections.emptyList(),1).get().getTokenValue();
         ILogData data = Helpers.createEmptyData(address, DataType.RANK_ONLY,  new IMetadata.DataRank(2))
                 .getSerialized();
         luc.write(data).get();
 
         populateMaps(1, getDefaultRuntime(), CorfuTable.class, false, 1);
 
-        address = seq.nextToken(Collections.emptySet(),1).get().getTokenValue();
+        address = seq.nextToken(Collections.emptyList(),1).get().getTokenValue();
         data = Helpers.createEmptyData(address, DataType.RANK_ONLY,  new IMetadata.DataRank(2))
                 .getSerialized();
         luc.write(data).get();
@@ -576,7 +576,7 @@ public class FastObjectLoaderTest extends AbstractViewTest {
 
         incrementalLoader.setLogHead(firstMileStone + 1);
         incrementalLoader.setLogTail(getDefaultRuntime().getSequencerView().
-                nextToken(Collections.emptySet(), 0).getTokenValue());
+                nextToken(Collections.emptyList(), 0).getTokenValue());
         incrementalLoader.loadMaps();
 
     }
@@ -651,7 +651,7 @@ public class FastObjectLoaderTest extends AbstractViewTest {
 
         UUID transactionStreams = rt1.getObjectsView().TRANSACTION_STREAM_ID;
         long tailTransactionStream = rt1.getSequencerView()
-                .nextToken(Collections.singleton(transactionStreams), 0).
+                .nextToken(Collections.singletonList(transactionStreams), 0).
                 getToken().getTokenValue();
 
         // Also recover the Transaction Stream

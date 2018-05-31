@@ -9,7 +9,9 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.netty.channel.ChannelHandlerContext;
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -293,30 +295,24 @@ public class SequencerServer extends AbstractServer {
     private void handleTokenQuery(CorfuPayloadMsg<TokenRequest> msg,
                                  ChannelHandlerContext ctx, IServerRouter r) {
         TokenRequest req = msg.getPayload();
-
-        // sanity backward-compatibility assertion; TODO: remove
-        if (req.getStreams().size() > 1) {
-            log.error("TOKEN-QUERY[{}]", req.getStreams());
-        }
-
-        long maxStreamGlobalTail = Address.NON_EXIST;
-
-        // see if this query is for a specific stream-tail
-        if (req.getStreams().size() == 1) {
-            UUID streamId = req.getStreams().iterator().next();
-
-            if (streamTailToGlobalTailMap.get(streamId) != null) {
-                maxStreamGlobalTail = streamTailToGlobalTailMap.get(streamId);
+        List<UUID> streams = req.getStreams();
+        List<Long> streamTails;
+        Token token;
+        if (req.getStreams().isEmpty()) {
+            token = new Token(globalLogTail.get() - 1, bootstrapEpoch);
+            streamTails = Collections.emptyList();
+        } else {
+            token = new Token(streamTailToGlobalTailMap.getOrDefault(streams.get(0), Address.NON_EXIST), bootstrapEpoch);
+            // Only populate the stream tails if more than one tail is queried
+            streamTails = new ArrayList<>(streams.size() - 1);
+            for (int x = 0; x < streams.size() && streams.size() > 1; x++) {
+                streamTails.add(streamTailToGlobalTailMap.getOrDefault(streams.get(x), Address.NON_EXIST));
             }
         }
 
-        // If no streams are specified in the request, this value returns the last global token
-        // issued.
-        long responseGlobalTail = (req.getStreams().size() == 0) ? globalLogTail.get() - 1 :
-                maxStreamGlobalTail;
-        Token token = new Token(responseGlobalTail, bootstrapEpoch);
         r.sendResponse(ctx, msg, CorfuMsgType.TOKEN_RES.payloadMsg(new TokenResponse(
-                TokenType.NORMAL, TokenResponse.NO_CONFLICT_KEY, token, Collections.emptyMap())));
+                TokenType.NORMAL, TokenResponse.NO_CONFLICT_KEY, token, Collections.emptyMap(),
+                streamTails)));
     }
 
     @ServerHandler(type = CorfuMsgType.SEQUENCER_TRIM_REQ)
@@ -454,7 +450,7 @@ public class SequencerServer extends AbstractServer {
 
         Token token = new Token(globalLogTail.getAndAdd(req.getNumTokens()), bootstrapEpoch);
         r.sendResponse(ctx, msg, CorfuMsgType.TOKEN_RES.payloadMsg(new TokenResponse(
-                TokenType.NORMAL, TokenResponse.NO_CONFLICT_KEY, token, Collections.emptyMap())));
+                TokenType.NORMAL, TokenResponse.NO_CONFLICT_KEY, token, Collections.emptyMap(), Collections.emptyList())));
 
     }
 
@@ -488,7 +484,7 @@ public class SequencerServer extends AbstractServer {
             // If the txn aborts, then DO NOT hand out a token.
             Token token = new Token(Address.ABORTED, bootstrapEpoch);
             r.sendResponse(ctx, msg, CorfuMsgType.TOKEN_RES.payloadMsg(new TokenResponse(tokenType,
-                    conflictKey.get(), token, Collections.emptyMap())));
+                    conflictKey.get(), token, Collections.emptyMap(), Collections.emptyList())));
             return;
         }
 
@@ -559,7 +555,7 @@ public class SequencerServer extends AbstractServer {
         Token token = new Token(currentTail, bootstrapEpoch);
         r.sendResponse(ctx, msg, CorfuMsgType.TOKEN_RES.payloadMsg(new TokenResponse(
                 TokenType.NORMAL, TokenResponse.NO_CONFLICT_KEY, token,
-                backPointerMap.build())));
+                backPointerMap.build(), Collections.emptyList())));
     }
 
     @Override

@@ -52,7 +52,7 @@ public class CompileProxyTest extends AbstractViewTest {
         // read will be on a trimmed address
         final int numOfTokens = 10;
         String streamName = "s1";
-        rt.getSequencerView().nextToken(Collections.singleton(CorfuRuntime.getStreamID(streamName)),
+        rt.getSequencerView().nextToken(Collections.singletonList(CorfuRuntime.getStreamID(streamName)),
                 numOfTokens);
 
         // Trim all the way up to the tail
@@ -304,7 +304,7 @@ public class CompileProxyTest extends AbstractViewTest {
         int concurrency = PARAMETERS.CONCURRENCY_LOTS;
 
         // Blocking until sequencer becomes functional.
-        getDefaultRuntime().getSequencerView().nextToken(Collections.EMPTY_SET, 0);
+        getDefaultRuntime().getSequencerView().nextToken(Collections.emptyList(), 0);
 
         // schedule 'concurrency' number of threads,
         // each one put()'s a key with its thread index
@@ -371,7 +371,7 @@ public class CompileProxyTest extends AbstractViewTest {
         int concurrency = PARAMETERS.CONCURRENCY_LOTS;
 
         // Block until sequencer operational.
-        getDefaultRuntime().getSequencerView().nextToken(Collections.EMPTY_SET, 0);
+        getDefaultRuntime().getSequencerView().nextToken(Collections.emptyList(), 0);
 
         // set up 'concurrency' number of threads that concurrency update sharedCorfuCompound, each to a different value
         scheduleConcurrently(concurrency, t -> {

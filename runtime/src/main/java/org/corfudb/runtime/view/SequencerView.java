@@ -1,6 +1,6 @@
 package org.corfudb.runtime.view;
 
-import java.util.Set;
+import java.util.List;
 import java.util.UUID;
 
 import org.corfudb.protocols.wireprotocol.TokenResponse;
@@ -30,13 +30,13 @@ public class SequencerView extends AbstractView {
      * @param numTokens The number of tokens to reserve.
      * @return The first token retrieved.
      */
-    public TokenResponse nextToken(Set<UUID> streamIDs, int numTokens) {
+    public TokenResponse nextToken(List<UUID> streamIDs, int numTokens) {
         return layoutHelper(e -> CFUtils.getUninterruptibly(e.getPrimarySequencerClient()
                 .nextToken(streamIDs, numTokens)));
     }
 
 
-    public TokenResponse nextToken(Set<UUID> streamIDs, int numTokens,
+    public TokenResponse nextToken(List<UUID> streamIDs, int numTokens,
                                    TxResolutionInfo conflictInfo) {
         return layoutHelper(e -> CFUtils.getUninterruptibly(e.getPrimarySequencerClient()
                 .nextToken(streamIDs, numTokens, conflictInfo)));
